@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>update</title>
+</head>
+<body>
+	<h2><span class="loginState"> 회원님의 정보 수정</span></h2>
+	<table>
+		<tr>
+			<td>member_id</td>
+			<td><span class="loginState"></span></td>
+		</tr>
+		<tr>
+			<td>member_pw</td>
+			<td><input id="newMemberPw"></td>
+		</tr>
+		<tr>
+			<td>member_level</td>
+			<td>
+				<select id="newMemberLevel">
+					<option value="Y">Y</option>
+					<option value="N">N</option>
+				</select>
+			</td>
+		</tr>
+	</table>
+	<button id="updateBtn">수정</button>
+	<button id="homeBtn">home</button>
+</body>
+<script src="/jQuery-ex/scripts/jquery-3.4.1.min.js"></script>
+<script>
+	$(document).ready(function(){
+		
+		// sessionInfo 값을 동기 요청(ajax)
+		
+		let loginState = null; // 로그인 상태값 변수 생성
+		$.ajax({
+			url : "/jQuery-ex/GetSessionInfo",
+			method : "POST",
+			async : false, // 동기 요청
+			success : function(json){
+				loginState = json; // 해당 함수가 아닌 부모함수인 ready(func..) 함수를 리턴하기 위해
+				console.log("loginState : ", loginState);
+			}
+		});
+	
+		// 상단바
+		$(".loginState").text(loginState);
+	
+		// home 버튼 클릭시 index.html로 이동
+		$("#homeBtn").click(function(){
+			location.href = "/jQuery-ex/index.html";
+		});
+		
+		// 수정 버튼 클릭 시
+		$("#updateBtn").click(function(){
+			if($("#newMemberPw").val() === "") {
+				alert("정보를 정확히 입력해주세요.");
+			} else {
+				$.ajax({
+					url : "/jQuery-ex/Update",
+					method : "POST",
+					data : {"memberId":loginState, "newMemberPw":$("#newMemberPw").val(), "newMemberLevel":$("#newMemberLevel").val()},
+					success : function() {
+						console.log("update success!");
+						alert("회원님의 정보가 수정되었습니다.");
+						location.href = "/jQuery-ex/index.html";
+					}
+				});
+			}
+		});
+	});
+</script>
+</html>

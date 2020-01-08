@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>join</title>
+</head>
+<body>
+	<table>
+		<tbody>
+			<tr>
+				<td>member_id : </td>
+				<td><input type="text" id="memberId" ></td>
+			</tr>
+			<tr>
+				<td>member_pw : </td>
+				<td><input type="password" id="memberPw"></td>
+			</tr>
+			<tr>
+				<td>member_level : </td>
+				<td><input type="text" value="Y" readonly="readonly"></td>
+			</tr>
+		</tbody>
+	</table>
+	<button type="button" id="joinBtn">회원 가입</button>
+	<button type="button" id="homeBtn">home</button>
+</body>
+<script src="/jQuery-ex/scripts/jquery-3.4.1.min.js"></script>
+<script>
+	// 회원 가입 버튼 클릭시
+	$("#joinBtn").click(function(){
+		// 입력된 값이 공백일경우 알림 세세지
+		if($("#memberId").val() === "" || $("#memberPw").val() === ""){
+			alert("ID와 PW의 값을 정확히 입력해 주세요.");
+		} else {
+			$.ajax({
+				url : "/jQuery-ex/Join",
+				method : "POST",
+				data : {"memberId":$("#memberId").val(), "memberPw":$("#memberPw").val()},
+				success : function(){
+					console.log("join success!");
+					alert("회원가입 되었습니다!");
+					location.href = "/jQuery-ex/index.html";
+				}
+			});
+		}
+	});
+	
+	// home 버튼 클릭시 index.html로 이동
+	$("#homeBtn").click(function(){
+		location.href = "/jQuery-ex/index.html";
+	});
+</script>
+</html>

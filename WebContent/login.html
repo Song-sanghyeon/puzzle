@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>login</title>
+</head>
+<body>
+	<h1>login</h1>
+	<table>
+		<tr>
+			<td>member_id</td>
+			<td><input type="text" id="memberId"></td>
+		</tr>
+		<tr>
+			<td>member_pw</td>
+			<td><input type="password" id="memberPw"></td>
+		</tr>
+	</table>
+	<button type="button" id="loginBtn">로그인</button>
+	<button type="button" id="joinBtn">회원가입</button>
+</body>
+<script src="/jQuery-ex/scripts/jquery-3.4.1.min.js"></script>
+<script>
+	// 로그인 버튼 클릭 시
+	$("#loginBtn").click(function(){
+		if($("#memberId").val() === "" || $("#memberPw").val() === "") {
+			alert("ID와 PW를 입력하세요.");
+		} else {
+			$.ajax({
+				url : "/jQuery-ex/Login",
+				method : "POST",
+				data : {"memberId":$("#memberId").val(), "memberPw":$("#memberPw").val()},
+				success : function(){
+					console.log("success!");
+					location.href = "/jQuery-ex/index.html";
+				}
+			});
+		}
+	});
+	
+	// 회원가입 버튼 클릭 시
+	$("#joinBtn").click(function(){
+		location.href = "/jQuery-ex/join.html"
+	});
+</script>
+</html>

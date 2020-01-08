@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>index</title>
+</head>
+<body>
+	<h2><span id="loginState"></span></h2>
+	<div>
+		<!-- 로그인 전 -->
+		<button id="loginBtn">로그인</button>
+		<!-- 로그인 후 -->
+		<button class="notLogin" id="logoutBtn">로그아웃</button>
+		<button class="notLogin" id="puzzleBtn">puzzle</button>
+		<button class="notLogin" id="myListBtn">my report list</button>
+		<button class="notLogin" id="updateBtn">정보 수정</button>
+		<button class="notLogin" id="deleteBtn">회원 탈퇴</button>
+	</div>
+	<hr>
+	<br>
+	<hr>
+ 	<div>
+		<button id="allTopBtn">Top 10</button>
+		<button id="dayTopBtn">오늘의 Top 10</button>
+		<button id="monthTopBtn">이달의 Top 10</button>
+ 	</div>
+ 	<hr>
+ 	<br>
+ 	<table border="1">
+ 		<thead>
+ 			<tr>
+ 				<th>member_id</th>
+ 				<th>report_date</th>
+ 				<th>count</th>
+ 				<th>timer</th>
+ 			</tr>
+ 		</thead>
+ 		<tbody id="list">
+			<!-- 랭킹 리스트 및 my report list -->
+ 		</tbody>
+	</table>
+</body>
+<script src="/jQuery-ex/scripts/jquery-3.4.1.min.js"></script>
+<script>
+	$(document).ready(function(){
+		
+		// sessionInfo 값을 동기 요청(ajax)
+	
+		let loginState = null; // 로그인 상태값 변수 생성
+		$.ajax({
+			url : "/jQuery-ex/GetSessionInfo",
+			method : "POST",
+			async : false, // 동기 요청
+			success : function(json){
+				loginState = json; // 해당 함수가 아닌 부모함수인 ready(func..) 함수를 리턴하기 위해
+				console.log("loginState : ", loginState);
+			}
+		});
+		
+		// 로그인 전
+		if(loginState === null) {
+			// 로그인 해야 이용 가능한 기능들 비활성화
+			$(".notLogin").hide();
+			// 상단에 로그인 알림 메세지 표시
+			$("#loginState").text("로그인을 해야 이용 가능합니다.");
+			
+		// 로그인 후
+		} else {
+			// 로그인 버튼 숨기기
+			$("#loginBtn").hide();
+			// 로그인 해야 이용 가능한 기능들 활성화
+			$(".notLogin").attr("disabled", false);
+			// 상단에 로그인 id 표시
+			$("#loginState").text(loginState+" 님 안녕하세요 !");
+		}
+
+		// 로그인 버튼 클릭시
+		$("#loginBtn").click(function(){
+			location.href = "/jQuery-ex/login.html";
+		});
+	
+		// 로그아웃 버튼 클릭시
+		$("#logoutBtn").click(function(){
+			$.ajax({
+				url : "/jQuery-ex/Logout",
+				method : "POST",
+				success : function(){
+					console.log("logout success!");
+					alert("로그아웃 되었습니다.");
+					location.href = "/jQuery-ex/index.html";
+				}
+			});
+		});
+		
+		// puzzle 버튼 클릭시
+		$("#puzzleBtn").click(function(){
+			location.href = "/jQuery-ex/puzzle.html";
+		});
+	
+	
+		// my list 버튼 클릭시
+		$("#myListBtn").click(function(){
+			$.ajax({
+				url : "/jQuery-ex/MyList",
+				method : "POST",
+				data : {"memberId":loginState},
+				success : function(json){
+					console.log("my list success!"+json);
+					// list초기화
+					$("#list").empty();
+					$(json).each(function(index, item){
+						temp = "<tr><td>";
+						temp += item.member.memberId;
+						temp += "</td><td>";
+						temp += item.reportDate;
+						temp += "</td><td>";
+						temp += item.count;
+						temp += "</td><td>";
+						temp += item.timer;
+						temp += "</td></tr>";
+						$("#list").append(temp);
+					});
+				}
+			});
+		});
+		
+		// 비밀번호 수정 버튼 클릭시
+		$("#updateBtn").click(function(){
+			location.href = "/jQuery-ex/update.html";
+		});
+		
+		// 회원 탈퇴 버튼 클릭시
+		$("#deleteBtn").click(function(){
+			$.ajax({
+				url : "/jQuery-ex/Delete",
+				method : "POST",
+				data : {"memberId":loginState},
+				success : function(){
+					console.log("delete success!");
+					alert("회원이 탈퇴 되었습니다.");
+					
+					$.ajax({
+						url : "/jQuery-ex/Logout",
+						method : "POST",
+						success : function(){
+							console.log("logout success!");
+							alert("자동으로 로그아웃 되었습니다.");
+							location.href = "/jQuery-ex/index.html";
+						}
+					});
+				}
+			});
+		});
+		
+		// Top 10 버튼 클릭시
+		$("#allTopBtn").click(function(){
+			$.ajax({
+				url : "/jQuery-ex/AllTopList",
+				method : "POST",
+				success : function(json){
+					console.log("allTopList success!");
+					// 리스트 초기화
+					$("#list").empty();
+					$(json).each(function(index, item){
+						temp = "<tr><td>";
+						temp += item.member.memberId;
+						temp += "</td><td>";
+						temp += item.reportDate;
+						temp += "</td><td>";
+						temp += item.count;
+						temp += "</td><td>";
+						temp += item.timer;
+						temp += "</td></tr>";
+						$("#list").append(temp);
+					});
+				}
+			});
+		});
+		
+		// 오늘의 Top 10 버튼 클릭시
+		$("#dayTopBtn").click(function(){
+			$.ajax({
+				url : "/jQuery-ex/DayTopList",
+				method : "POST",
+				success : function(json){
+					console.log("dayTopList success!");
+					// 리스트 초기화
+					$("#list").empty();
+					$(json).each(function(index, item){
+						temp = "<tr><td>";
+						temp += item.member.memberId;
+						temp += "</td><td>";
+						temp += item.reportDate;
+						temp += "</td><td>";
+						temp += item.count;
+						temp += "</td><td>";
+						temp += item.timer;
+						temp += "</td></tr>";
+						$("#list").append(temp);
+					});
+				}
+			});
+		});
+
+		// 이달의 Top 10 버튼 클릭시
+		$("#monthTopBtn").click(function(){
+			$.ajax({
+				url : "/jQuery-ex/MonthTopList",
+				method : "POST",
+				success : function(json){
+					console.log("monthTopList success!");
+					// 리스트 초기화
+					$("#list").empty();
+					$(json).each(function(index, item){
+						temp = "<tr><td>";
+						temp += item.member.memberId;
+						temp += "</td><td>";
+						temp += item.reportDate;
+						temp += "</td><td>";
+						temp += item.count;
+						temp += "</td><td>";
+						temp += item.timer;
+						temp += "</td></tr>";
+						$("#list").append(temp);
+					});
+				}
+			});
+		});
+	});
+</script>
+</html>

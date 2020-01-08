@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title></title>
+<style>
+	table, td {
+		border : 1px solid gray;
+	}
+	
+	table {
+		border-collapse : collapse;
+	}	
+	.panel{
+		position: relative;
+	}
+	.pic {
+		position: relative;
+		z-index: 1;
+	}
+	.back {
+		position: absolute;
+		right : 0;
+		z-index: 2;
+	}
+</style>
+<script src="/jQuery-ex/scripts/jquery-3.4.1.min.js"></script>
+</head>
+<body>
+	<h1><span id="gameMode"></span></h1>
+	<h2><span id="loginState"></span> ▶ level : <span id="level"></span> exp : (<span id="exp"></span>/100) 남은 시간 : <span id="timer"></span> 초</h2>
+	<h2>combo : <span id="combo"></span></h2>
+	<div>
+		<button id="startBtn">GAME START</button>
+		<br>
+	</div>
+	
+	<!-- ### boss ################################################################ -->
+	<div id="boss">
+		<div><img src="/jQuery-ex/images/boss.png"></div>
+		<h1>boss HP : <span id="bossHP"></span></h1>
+	</div>
+	
+	<!-- ### puzzle ################################################################## -->
+	<div>
+		<table id="board">
+		</table>
+	</div>
+	<div>
+		<br>
+		<button type="button" id="homeBtn">home</button>
+	</div>
+</body>
+<script>
+<!-- 차후 추가 예정
+	// 4 x 4 뒷면
+	let model1Back = ["boss.png","boss.png",
+					 "boss.png","boss.png",
+					 "boss.png","boss.png",
+					 "boss.png","boss.png",
+					 "boss.png","boss.png",
+					 "boss.png","boss.png",
+					 "boss.png","boss.png"
+					];
+-->
+
+// ### ▼▼▼▼▼ 카드 이미지 배열(model) ▼▼▼▼▼ #################################################################################################
+
+	// 4 x 4 앞면
+	let model1 = ["pic00.png","pic00.png",
+				  "pic01.png","pic01.png",
+				  "pic02.png","pic02.png",
+				  "pic03.png","pic03.png",
+				  "pic04.png","pic04.png",
+				  "pic05.png","pic05.png",
+				  "pic06.png","pic06.png",
+				  "pic07.png","pic07.png"
+				];
+
+	// 6 x 6 앞면
+	let model2 = ["pic00.png","pic00.png",
+				  "pic01.png","pic01.png",
+				  "pic02.png","pic02.png",
+				  "pic03.png","pic03.png",
+				  "pic04.png","pic04.png",
+				  "pic05.png","pic05.png",
+				  "pic06.png","pic06.png",
+				  "pic07.png","pic07.png",
+				  "pic08.png","pic08.png",
+				  "pic09.png","pic09.png",
+				  "pic10.png","pic10.png",
+				  "pic11.png","pic11.png",
+				  "pic12.png","pic12.png",
+				  "pic13.png","pic13.png",
+				  "pic14.png","pic14.png",
+				  "pic15.png","pic15.png",
+				  "pic16.png","pic16.png",
+				  "pic17.png","pic17.png"
+				];
+
+// ### ▲▲▲▲▲ 카드 이미지 배열(model) ▲▲▲▲▲ #############################################################################	
+	
+	$(document).ready(function(){ // http:localhost:8080/jQuery-ex/images/pic05.png
+		$("#boss").hide(); // 게임 시작 뒤 보스의 모습이 나타내기위해 보스 숨겨놓기
+		
+// ### ▼▼▼▼▼ 로그인 & home ▼▼▼▼▼ #################################################################################################
+		
+		// home 버튼 클릭시 index.html로 이동
+		$("#homeBtn").click(function(){
+			location.href = "/jQuery-ex/index.html";
+		});
+	
+		// sessionInfo 값을 동기 요청(ajax)
+		
+		let loginState = null; // 로그인 상태값 변수 생성
+		$.ajax({
+			url : "/jQuery-ex/GetSessionInfo",
+			method : "POST",
+			async : false, // 동기 요청
+			success : function(json){
+				loginState = json; // 해당 함수가 아닌 부모함수인 ready(func..) 함수를 리턴하기 위해
+				console.log("loginState : ", loginState);
+			}
+		});
+		
+		if(loginState === null) {
+			location.href = "/jQuery-ex/login.html";
+			return false;
+		}
+		
+		// 상단에 로그인 id 표시
+		$("#loginState").text(loginState);
+		
+// ### ▲▲▲▲▲ 로그인 & home ▲▲▲▲▲ #############################################################################
+		
+// ### ▼▼▼▼▼ 유저 level, exp 가져오기 ▼▼▼▼▼ #################################################################
+		
+		let level = 0; // 유저의 현재 레벨
+		let exp = 0; // 유저의 현재 남아있는 경험치
+		
+		$.ajax({
+			url : "/jQuery-ex/UserInfo",
+			method : "POST",
+			data : {"memberId":loginState},
+			success : function(json){
+				console.log("json : ", json);
+				$(json).each(function(index, item){
+					level = item.level;
+					$("#level").text(level);
+					console.log("user level : ", level);
+					exp = item.exp;
+					$("#exp").text(exp);
+					console.log("user exp : ", exp);
+				})
+			}
+		});
+		
+// ### ▲▲▲▲▲ 유저 level, exp 가져오기 ▲▲▲▲▲ ###########################################################################################
+		
+		// game start
+		$("#startBtn").click(function(){
+			// 버그 : 시작버튼을 계속해서 클릭하면 timer가 곂쳐져서 제대로된 정보 확인 불가능 (해결 : 게임을 시작하면 시작버튼을 숨겨서 비활성화시킴)
+			// 시작버튼 클릭시 보스의 이미지와 보스의 체력을 눈으로 확인할 수 있으며, 카드가 배치되고 시작버튼이 사라진다.
+			$("#boss").show();
+			$("#bossHP").show();
+			$("#board").empty();
+			$("#startBtn").hide();
+			// 생성한 게임 함수 호출
+			$.game();
+		});
+
+// ### ▼▼▼▼▼ game function ▼▼▼▼▼ ##############################################################################
+
+	// game이라는 이름의 함수를 만들어서 호출하기 쉽도록 한다. (기존모드 제외 새로운 모드 추가시 코드의 불필요한 반복을 해결하기 위함)
+		$.game = function(){
+			
+			// stage별 model 변경 stage1 -> model1 ...	
+			let stage = 1;
+			// shuffle : 4x4와 6x6 배열을 만들기위한 변수 한줄에 들어갈 갯수를 지정하기위한 변수
+			let shuffle = 0;
+			let bossHP = 5000; // 보스 체력
+			
+			if(stage === 1) {
+				model = model1;
+				shuffle = 4;
+				$("#bossHP").text(bossHP);
+				console.log("bossHP : ",bossHP);
+				console.log("stage : ",stage);
+				console.log("model.length : ",model.length);
+			} else {
+				alert("버그 !");
+			}
+			
+	// ### ▼▼▼▼▼ timer ▼▼▼▼▼ #####################################################################################################
+		
+			// 제한시간 180초 (3분)
+			let timeOver = 180; // 한 게임당 존재하는 제한시간
+			// 시간초과시 게임 강제 종료
+			console.log(timeOver);
+			timer = setInterval(function(){
+				timeOver--;
+				$("#timer").text(timeOver);
+				if(timeOver === -1){
+					clearInterval(timer);
+					alert("시간초과입니다.");
+					// 시간초과시 게임 종료 다시 puzzle 페이지 이동
+					location.href = "/jQuery-ex/puzzle.html";
+				}
+			}, 1000);
+			
+	// ### ▲▲▲▲▲ timer ▲▲▲▲▲ ##################################################################################
+			
+	// ### ▼▼▼▼▼ model 셔플 ▼▼▼▼▼ ##############################################################################################################
+
+			for(let i=0; i<100000; i++) {
+				let tmp = model[0];
+				// ran = model.length 중 랜덤 숫자
+				let ran = Math.floor(Math.random()*model.length);
+				model[0] = model[ran];
+				model[ran] = tmp;
+			}
+
+	// ### ▲▲▲▲▲ model 셔플 ▲▲▲▲▲ ########################################################################################################################################
+			
+	// ### ▼▼▼▼▼ 모델 출력 ▼▼▼▼▼ ###############################################################################################################################################################
+	
+			$("#board").empty(); // 테이블 초기화
+			$(model).each(function(index, item){
+				// 우클릭 방지 : oncontextmenu='return false'
+				// 드래그 방지 : ondragstart='return false'
+				if(((index % shuffle) === 0)) {
+					$("#board").append("<tr></tr>");
+				}
+				$("#board").append("<td oncontextmenu='return false' ondragstart='return false' class='panel'><input class='pic' type='image' src='/jQuery-ex/images/"+item+"'></td>");
+				// 카드 뒷모습 겹치기 (추후 추가 예정)
+				//$("#board").append("<td oncontextmenu='return false' ondragstart='return false' class='panel'><input class='pic' type='image' src='/jQuery-ex/images/"+item+"'><input class='back' type='image' src='/jQuery-ex/images/back.png'></td>");
+			});
+			
+			// 카드 이미지를 4초 뒤 애니메이션사용(0.1투명)
+			$(".pic").each(function(){
+				$(this).animate({opacity:0.3}, 4000); // 클릭 상태로 드래그 시 버그 (해결 책 :우클릭 방지)
+			});
+			
+	// ### ▲▲▲▲▲ 모델 출력 ▲▲▲▲▲ ########################################################################################################################################
+			
+	// ### ▼▼▼▼▼ 이미지 클릭 전 게임 변수 셋팅 ▼▼▼▼▼ ############################################################################################
+
+			let total = 0; // 전체 클릭 횟수 (시도횟수)
+			// state = 0 -> 아무것도 열지 않은상태 
+			// state = 1 -> 하나가 열려있는 상태 
+			// state = 2 -> 둘다 열려있는 상태
+			let state = 0; // 그림을 처음 여는 클릭인지 맞추기 위한 두번째 클릭인지 알기위한 변수 (0 or 1 or 2)
+			let success = 0; // 성공 횟수 (몇개의 그림이 맞추어져있는지 세는 변수)
+			let onePic = null; // 첫번째 클릭한 이미지
+			let twoPic = null; // 두번째 클릭한 이미지
+			let newExp = 0; // 게임 종료 후 받을 새 경험치
+			let saveExp = 0; // 원래 가지고있던 경험치와 새로받은 경험치를 더한 뒤 레벨업을 하고 남은 경험치
+			
+			let bestCombo = 0; // 가장 높게 올라간 횟수
+			let combo = 0; // 첫번째 콤보에 저장되서 비교할 첫번째 콤보 값 
+			
+	// ### ▲▲▲▲▲ 이미지 클릭 전 게임 변수 셋팅 ▲▲▲▲▲ ########################################################################################################################################		
+
+	// ### ▼▼▼▼▼ 이미지 클릭 시 ▼▼▼▼▼ ############################################################################################
+
+			$(document).on("click", ".pic", function(){
+			//$(".pic").click(function(){
+				//확인 console.log($(this).attr("src")); // attr : 요소의 속성 값을 가져오거나 속성을 추가
+				total++;
+				state++;
+				$(this).attr("disabled", true); // 더블클릭 방지
+				if(state === 1) {
+					console.log("state 1");
+					$(this).animate({opacity:1}, 1);
+					onePic = $(this);
+				} else if(state === 2) {
+					console.log("state 2");
+					$(this).animate({opacity:1}, 1);
+					twoPic = $(this);
+					// 첫번째 클릭한 이미지의 속성값과 두번재 클릭한 이미지의 속성값이 일치할 경우
+					if($(onePic).attr("src") === $(twoPic).attr("src")) {
+						success++; // 성공한 횟수 증가
+		// ### ▼▼▼▼▼ combo 기능 ▼▼▼▼▼ ############################################################################################################
+						combo++;
+						// 보스의 체력은 한번의 성공시 100씩 줄어든다. ※단, 연속으로 성공한 경우 연속으로 성공한 횟수x100씩 줄어든다.
+						bossHP = (bossHP)-(100*combo);
+						$("#bossHP").text(bossHP);
+						console.log("bossHP : ", bossHP);
+						console.log("combo : ", combo);
+						$("#combo").text(combo);
+						// 보스의 체력이 0이하로 떨어지면 게임이 종료된다.
+						if(bossHP <= 0) {
+							console.log("boss clear!");
+							// 게임 종료시 알림창과 동시에 타이머가 일시정지된다.
+							clearInterval(timer);
+							console.log("현재 exp : "+exp);
+							// 게임 종료시 얻을 수 있는 경험치는 남은시간/2의 값의 정수값이다.
+							newExp = Math.floor(timeOver/2);
+							console.log("받은 exp : "+newExp);
+							// 기존에 가지고있던 경험치와 새로 받은 경험치의 값이 100 이상일때 레벨업이 된다.
+							if((exp+newExp) >= 100){
+								level ++;
+								// 레벨이 올랐으면 저장될 경험치는 100에서 뺀 나머지가 된다.
+								saveExp = (newExp+exp)-100;
+								console.log("level up! Lv"+level); // 현재 레벨
+								console.log("남은 exp : "+saveExp); // 남은 경험치
+							} else {
+								// 100이 안넘는다면 경험치만 저장
+								saveExp = newExp+exp;
+								console.log("남은 exp : "+saveExp); // 남은 경험치
+							}
+			// ### ▼▼▼▼▼ 게임 종료 시 데이터 저장 ▼▼▼▼▼ ############################################################################################################
+							$.ajax({
+								url : "/jQuery-ex/AddReport",
+								method : "POST",
+								data : {"timer":180-(timeOver), "count":total, "memberId":loginState, "bestCombo":bestCombo, "exp":saveExp, "level":level},
+								success : function(){
+									console.log("남은 시간("+timeOver+"), 횟수("+total+"), 최대 콤보("+bestCombo+")");
+									alert("보스를 격파했습니다 ! 획득한 경험치 : "+Math.floor(timeOver/2)+" 현재 레벨 : "+level);
+									alert("당신의 기록 : 남은 시간("+timeOver+"), 횟수("+total+"), 최대 콤보("+bestCombo+")");
+									location.href = "/jQuery-ex/puzzle.html";
+									return;
+								}
+							});
+			// ### ▲▲▲▲▲ 게임 종료 시 데이터 저장 ▲▲▲▲▲ ############################################################################################################
+						}
+						// combo와 bestcombo는 카드를 맞추었을때 증가하였다.
+						// bestcombo는 최고콤보이므로 combo가 bestcombo보다 클때만 증가해야한다.
+						if(bestCombo < combo){
+							bestCombo++;
+						}
+						$("#bestCombo").text(bestCombo);
+		// ### ▲▲▲▲▲ combo 기능 ▲▲▲▲▲ #########################################################################################
+						// 보여진 카드 배열의 절반. 즉, 모든 카드를 맞추었을때 다음 stage로 넘어간다.
+						if(success === model.length/2) {
+				// ### ▼▼▼▼▼ (2) model 셔플 ▼▼▼▼▼ ################################################################################################################
+							stage += 1;
+							if(stage === 2) {
+								model = model2;
+								shuffle = 6;
+								console.log("bossHP : ",bossHP);
+								console.log("stage : ",stage);
+								console.log("model.length : ",model.length);
+							}
+							for(let i=0; i<100000; i++) {
+								let tmp = model[0];
+								// ran = model.length 중 랜덤 숫자
+								let ran = Math.floor(Math.random()*model.length);
+								model[0] = model[ran];
+								model[ran] = tmp;
+							}
+				// ### ▲▲▲▲▲ (2) model 셔플 ▲▲▲▲▲ ###############################################################################
+
+				// ### ▼▼▼▼▼ (2) 모델 출력 ▼▼▼▼▼ ###############################################################################
+
+							$("#board").empty();
+							$(model).each(function(index, item){
+								// 우클릭 방지 : oncontextmenu='return false'
+								// 드래그 방지 : ondragstart='return false'
+								if(((index % shuffle) === 0)) {
+									$("#board").append("<tr></tr>");	
+								}
+								$("#board").append("<td oncontextmenu='return false' ondragstart='return false'><input class='pic' type='image' src='/jQuery-ex/images/"+item+"'></td>");
+							});
+							$(".pic").each(function(){
+								$(this).animate({opacity:0.3}, 4000); // 클릭 상태로 드래그 시 버그 (해결 책 :우클릭 방지)
+							});
+							if(success === model.length/2) {
+								
+							}
+				// ### ▲▲▲▲▲ (2) 모델 출력 ▲▲▲▲▲ ###############################################################################
+						}
+					} else {
+						combo = 0;
+						$("#combo").text(combo);
+						$(onePic).animate({opacity:0.01}, 700);
+						$(twoPic).animate({opacity:0.01}, 700);
+						$(onePic).attr("disabled", false);
+						$(twoPic).attr("disabled", false);
+					}
+					state = 0;
+				} else {
+					alert("버그!");
+				}
+			});
+		}
+// ### ▲▲▲▲▲ game function ▲▲▲▲▲ ##############################################################################
+	});
+</script>
+</html>
